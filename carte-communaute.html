@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -161,6 +160,10 @@
       <input type="text" id="f_niche" placeholder="Marketing, Tech, Finance…" maxlength="80" />
       <label>Lien réseau social</label>
       <input type="url" id="f_social" placeholder="https://linkedin.com/in/…" />
+      <div style="display:flex;align-items:center;gap:10px;margin-top:14px;padding:12px;background:#f0f0f8;border-radius:8px;border:1px solid #d0cce8;">
+        <input type="checkbox" id="f_membreDC" style="width:18px;height:18px;flex-shrink:0;accent-color:#2D3270;" />
+        <label for="f_membreDC" style="margin:0;font-size:13px;text-transform:none;letter-spacing:0;color:#2D3270;font-weight:700;cursor:pointer;">Je fais partie de l'accompagnement Disruptive Closing</label>
+      </div>
       <div id="formStatus"></div>
       <button class="primary" id="submitBtn" onclick="submitForm()">Rejoindre la carte</button>
     </div>
@@ -232,16 +235,26 @@ function renderAll(){
   renderMarkers(filtered);
 }
 
+const DC_BADGE = `<span style="display:inline-flex;align-items:center;gap:4px;background:#2D3270;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:5px;font-family:Nunito,sans-serif;">DC</span>`;
+
 function renderList(members){
   const el = document.getElementById("memberList");
   if(!members.length){ el.innerHTML = '<div class="empty">Aucun membre pour ce filtre.</div>'; return; }
   el.innerHTML = members.map((m,i) => `
     <div class="member-card" onclick="focusMember(${allMembers.indexOf(m)})">
-      <div class="name">${m.Prénom} ${m.Nom}</div>
+      <div class="name">${m.Prénom} ${m.Nom}${m["membre DC"]==="Oui"?DC_BADGE:""}</div>
       <div class="meta">📍 ${m.Ville}${m.Niche ? " · " + m.Niche : ""}</div>
       <span class="badge ${badgeClass(m.Statut)}">${m.Statut}</span>
     </div>`).join("");
 }
+
+const DC_ICON = L.divIcon({
+  className: "",
+  html: `<div style="width:32px;height:32px;border-radius:50%;background:#2D3270;border:2px solid #3BD851;display:flex;align-items:center;justify-content:center;font-family:Nunito,sans-serif;font-weight:800;font-size:10px;color:white;box-shadow:0 2px 6px rgba(0,0,0,0.35);letter-spacing:0.02em;">DC</div>`,
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+  popupAnchor: [0, -18]
+});
 
 function renderMarkers(members){
   mapMarkers.forEach(m => map.removeLayer(m));
@@ -250,14 +263,21 @@ function renderMarkers(members){
     const found = geocode(m.Ville);
     if(!found) return;
     const c = COLORS[m.Statut] || { fill:"#888", stroke:"#555" };
-    const social = m.Social ? `<br><a href="${m.Social}" target="_blank" style="color:#534AB7;font-size:12px">Voir le profil</a>` : "";
-    const popup = `<div style="font-size:13px;min-width:170px">
-      <b style="font-size:14px">${m.Prénom} ${m.Nom}</b><br>
+    const isDC = m["membre DC"] === "Oui";
+    const social = m.Social ? `<br><a href="${m.Social}" target="_blank" style="color:#3BD851;font-size:12px">Voir le profil</a>` : "";
+    const dcTag = isDC ? `<span style="background:#2D3270;color:#3BD851;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:4px;">DC</span>` : "";
+    const popup = `<div style="font-size:13px;min-width:170px;font-family:Calibri,sans-serif;">
+      <b style="font-size:14px;font-family:Nunito,sans-serif;">${m.Prénom} ${m.Nom}</b>${dcTag}<br>
       <span style="background:${c.fill};color:#fff;border-radius:4px;padding:2px 7px;font-size:11px">${m.Statut}</span>
       <br><br>📍 ${m.Ville}${m.Niche?"<br>🎯 "+m.Niche:""}${social}
     </div>`;
-    const mk = L.circleMarker(found.coords, { radius:9, fillColor:c.fill, color:c.stroke, weight:2, opacity:1, fillOpacity:0.9 })
-      .addTo(map).bindPopup(popup);
+    let mk;
+    if(isDC){
+      mk = L.marker(found.coords, { icon: DC_ICON }).addTo(map).bindPopup(popup);
+    } else {
+      mk = L.circleMarker(found.coords, { radius:9, fillColor:c.fill, color:c.stroke, weight:2, opacity:1, fillOpacity:0.9 })
+        .addTo(map).bindPopup(popup);
+    }
     mk._memberId = allMembers.indexOf(m);
     mapMarkers.push(mk);
   });
@@ -291,7 +311,8 @@ async function submitForm(){
   const ville  = document.getElementById("f_ville").value.trim();
   const statut = document.getElementById("f_statut").value;
   const niche  = document.getElementById("f_niche").value.trim();
-  const social = document.getElementById("f_social").value.trim();
+  const social   = document.getElementById("f_social").value.trim();
+  const membreDC = document.getElementById("f_membreDC").checked ? "Oui" : "Non";
   const st     = document.getElementById("formStatus");
   const btn    = document.getElementById("submitBtn");
 
@@ -313,14 +334,15 @@ async function submitForm(){
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ Prénom:prenom, Nom:nom, Mail:mail, Tel:tel, Ville:ville, Statut:statut, Niche:niche, Social:social })
+      body: JSON.stringify({ Prénom:prenom, Nom:nom, Mail:mail, Tel:tel, Ville:ville, Statut:statut, Niche:niche, Social:social, "membre DC":membreDC })
     });
-    allMembers.push({ Prénom:prenom, Nom:nom, Mail:mail, Tel:tel, Ville:ville, Statut:statut, Niche:niche, Social:social });
+    allMembers.push({ Prénom:prenom, Nom:nom, Mail:mail, Tel:tel, Ville:ville, Statut:statut, Niche:niche, Social:social, "membre DC":membreDC });
     renderAll();
     st.textContent = `Bienvenue ${prenom} ! Tu apparais maintenant sur la carte.`;
     st.className = "ok";
     ["f_prenom","f_nom","f_mail","f_tel","f_ville","f_niche","f_social"].forEach(id => document.getElementById(id).value="");
     document.getElementById("f_statut").value="";
+    document.getElementById("f_membreDC").checked = false;
     showTab("membres", document.querySelectorAll(".tab")[0]);
   } catch(e) {
     st.textContent = "Erreur lors de l'envoi. Réessaie.";
