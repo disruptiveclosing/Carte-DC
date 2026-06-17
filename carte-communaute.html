@@ -176,25 +176,6 @@
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbwW09-GnsE6IrNsi6fQ5R4NRKkb8euYEaz_EXz1mB70BrhU9Zo59tVR8LAWZPiD_wMS/exec";
 
-const CITIES = {
-  "paris":[48.8566,2.3522],"lyon":[45.764,4.8357],"marseille":[43.2965,5.3698],
-  "toulouse":[43.6047,1.4442],"nice":[43.7102,7.262],"nantes":[47.2184,-1.5536],
-  "strasbourg":[48.5734,7.7521],"montpellier":[43.6109,3.8772],"bordeaux":[44.8378,-0.5792],
-  "lille":[50.6292,3.0573],"rennes":[48.1173,-1.6778],"reims":[49.2583,4.0317],
-  "toulon":[43.1242,5.928],"grenoble":[45.1885,5.7245],"dijon":[47.322,5.0415],
-  "angers":[47.4784,-0.5632],"nimes":[43.8367,4.3601],"brest":[48.3904,-4.4861],
-  "le havre":[49.4938,0.1077],"clermont-ferrand":[45.7772,3.087],"tours":[47.3941,0.6848],
-  "limoges":[45.8336,1.2611],"metz":[49.1193,6.1757],"rouen":[49.4432,1.0993],
-  "caen":[49.1829,-0.3707],"nancy":[48.6921,6.1844],"pau":[43.2951,-0.3708],
-  "besancon":[47.2378,6.0241],"orleans":[47.9029,1.9039],"perpignan":[42.6987,2.8956],
-  "amiens":[49.8941,2.2958],"aix-en-provence":[43.5297,5.4474],"saint-etienne":[45.4397,4.3872],
-  "le mans":[48.0061,0.1996],"aix":[43.5297,5.4474],"versailles":[48.8014,2.1301],
-  "poitiers":[46.5802,0.3404],"la rochelle":[46.1591,-1.1511],"bayonne":[43.4929,-1.4748],
-  "annecy":[45.8992,6.1294],"chartres":[48.4469,1.4878],"biarritz":[43.4832,-1.5586],
-  "colmar":[48.0794,7.3584],"troyes":[48.2973,4.0744],"lorient":[47.7481,-3.3714],
-  "valenciennes":[50.3578,3.5236],"avignon":[43.9493,4.8055],"dunkerque":[51.0343,2.3771]
-};
-
 const COLORS = {
   "En recherche de mission": { fill:"#E85D40", stroke:"#b83a20" },
   "En mission":              { fill:"#3BD851", stroke:"#1a8a30" },
@@ -204,14 +185,20 @@ const COLORS = {
 function badgeClass(s){ return s==="En mission"?"mission":s==="Disponible bientôt"?"dispo":"recherche"; }
 
 let map, allMembers = [], mapMarkers = [], activeFilter = "tous";
+const coordsCache = {};
 
-function norm(s){ return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").trim(); }
-
-function geocode(city){
-  const k = norm(city);
-  for(const [name,coords] of Object.entries(CITIES)){
-    if(norm(name)===k || norm(name).startsWith(k) || k.startsWith(norm(name))) return { coords, label:name };
-  }
+async function geocode(city){
+  const key = city.toLowerCase().trim();
+  if(coordsCache[key]) return coordsCache[key];
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city+", France")}&format=json&limit=1`);
+    const data = await res.json();
+    if(data.length > 0){
+      const coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+      coordsCache[key] = coords;
+      return coords;
+    }
+  } catch(e) {}
   return null;
 }
 
@@ -229,10 +216,10 @@ function setFilter(f, el){
   renderAll();
 }
 
-function renderAll(){
+async function renderAll(){
   const filtered = activeFilter === "tous" ? allMembers : allMembers.filter(m => m.Statut === activeFilter);
   renderList(filtered);
-  renderMarkers(filtered);
+  await renderMarkers(filtered);
 }
 
 const DC_BADGE = `<span style="display:inline-flex;align-items:center;gap:4px;background:#2D3270;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:5px;font-family:Nunito,sans-serif;">DC</span>`;
@@ -256,12 +243,12 @@ const DC_ICON = L.divIcon({
   popupAnchor: [0, -18]
 });
 
-function renderMarkers(members){
+async function renderMarkers(members){
   mapMarkers.forEach(m => map.removeLayer(m));
   mapMarkers = [];
-  members.forEach((m, i) => {
-    const found = geocode(m.Ville);
-    if(!found) return;
+  for(const m of members){
+    const coords = await geocode(m.Ville);
+    if(!coords) continue;
     const c = COLORS[m.Statut] || { fill:"#888", stroke:"#555" };
     const isDC = m["Membre DC"] === "Oui";
     const social = m.Social ? `<br><a href="${m.Social}" target="_blank" style="color:#3BD851;font-size:12px">Voir le profil</a>` : "";
@@ -273,21 +260,21 @@ function renderMarkers(members){
     </div>`;
     let mk;
     if(isDC){
-      mk = L.marker(found.coords, { icon: DC_ICON }).addTo(map).bindPopup(popup);
+      mk = L.marker(coords, { icon: DC_ICON }).addTo(map).bindPopup(popup);
     } else {
-      mk = L.circleMarker(found.coords, { radius:9, fillColor:c.fill, color:c.stroke, weight:2, opacity:1, fillOpacity:0.9 })
+      mk = L.circleMarker(coords, { radius:9, fillColor:c.fill, color:c.stroke, weight:2, opacity:1, fillOpacity:0.9 })
         .addTo(map).bindPopup(popup);
     }
     mk._memberId = allMembers.indexOf(m);
     mapMarkers.push(mk);
-  });
+  }
 }
 
-function focusMember(idx){
+async function focusMember(idx){
   const m = allMembers[idx];
-  const found = geocode(m.Ville);
-  if(!found) return;
-  map.flyTo(found.coords, 10, { duration:1 });
+  const coords = await geocode(m.Ville);
+  if(!coords) return;
+  map.flyTo(coords, 10, { duration:1 });
   const mk = mapMarkers.find(m => m._memberId === idx);
   if(mk) setTimeout(() => mk.openPopup(), 1100);
 }
@@ -320,9 +307,12 @@ async function submitForm(){
     st.textContent = "Merci de remplir les champs obligatoires (*).";
     st.className = "err"; return;
   }
-  if(!geocode(ville)){
-    st.textContent = `Ville "${ville}" introuvable. Essaie une grande ville française.`;
-    st.className = "err"; return;
+  const coords = await geocode(ville);
+  if(!coords){
+    st.textContent = `Ville "${ville}" introuvable. Vérifie l'orthographe.`;
+    st.className = "err";
+    btn.disabled = false; btn.textContent = "Rejoindre la carte";
+    return;
   }
 
   btn.disabled = true;
