@@ -24,11 +24,14 @@
     header {
       background: var(--dc-dark);
       padding: 0 1.5rem;
-      height: 62px;
+      min-height: 62px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
+      flex-wrap: wrap;
+      padding-top: 10px;
+      padding-bottom: 10px;
     }
     .header-logo { display: flex; align-items: center; gap: 10px; }
     .header-logo svg { height: 32px; width: auto; }
@@ -44,6 +47,22 @@
       border-radius: 4px;
       padding: 3px 8px;
     }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-header {
+      font-family: "Nunito", sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: opacity 0.15s;
+    }
+    .btn-header:hover { opacity: 0.85; }
+    .btn-wa { background: #25D366; color: #fff; }
+    .btn-events { background: transparent; color: var(--dc-green); border: 1px solid rgba(59,216,81,0.5); }
 
     .layout { display: flex; height: calc(100vh - 62px); min-height: 400px; }
 
@@ -114,8 +133,12 @@
 <header>
   <div class="header-logo">
     <img src="Logo.svg" alt="Disruptive Closing" style="height: 36px; width: auto;" />
+    <span class="header-tag">Carte de la communauté</span>
   </div>
-  <span class="header-tag">Carte de la communauté</span>
+  <div class="header-actions">
+    <a href="#" class="btn-header btn-wa">💬 Créer un groupe local</a>
+    <a href="#" class="btn-header btn-events">📅 Prochains événements DC</a>
+  </div>
 </header>
 
 <div class="layout">
@@ -127,12 +150,6 @@
 
     <!-- Onglet membres -->
     <div id="tab-membres" class="tab-content active">
-      <div class="filters">
-        <span class="pill active" onclick="setFilter('tous', this)">Tous</span>
-        <span class="pill" onclick="setFilter('En recherche de mission', this)">Recherche</span>
-        <span class="pill" onclick="setFilter('En mission', this)">En mission</span>
-        <span class="pill" onclick="setFilter('Disponible bientôt', this)">Dispo bientôt</span>
-      </div>
       <div id="memberList"><div class="empty">Chargement…</div></div>
     </div>
 
@@ -239,7 +256,6 @@ function renderList(members){
     <div class="member-card" onclick="focusMember(${allMembers.indexOf(m)})">
       <div class="name">${m.Prénom} ${m.Nom}${m["Membre DC"]==="Oui"?DC_BADGE:""}</div>
       <div class="meta">📍 ${m.Ville}${m.Niche ? " · " + m.Niche : ""}</div>
-      <span class="badge ${badgeClass(m.Statut)}">${m.Statut}</span>
     </div>`).join("");
 }
 
@@ -257,20 +273,18 @@ async function renderMarkers(members){
   for(const m of members){
     const coords = await geocode(m.Ville);
     if(!coords) continue;
-    const c = COLORS[m.Statut] || { fill:"#888", stroke:"#555" };
     const isDC = m["Membre DC"] === "Oui";
     const social = m.Social ? `<br><a href="${m.Social}" target="_blank" style="color:#3BD851;font-size:12px">Voir le profil</a>` : "";
     const dcTag = isDC ? `<span style="background:#2D3270;color:#3BD851;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:4px;">DC</span>` : "";
     const popup = `<div style="font-size:13px;min-width:170px;font-family:Calibri,sans-serif;">
-      <b style="font-size:14px;font-family:Nunito,sans-serif;">${m.Prénom} ${m.Nom}</b>${dcTag}<br>
-      <span style="background:${c.fill};color:#fff;border-radius:4px;padding:2px 7px;font-size:11px">${m.Statut}</span>
-      <br><br>📍 ${m.Ville}${m.Niche?"<br>🎯 "+m.Niche:""}${social}
+      <b style="font-size:14px;font-family:Nunito,sans-serif;">${m.Prénom} ${m.Nom}</b>${dcTag}<br><br>
+      📍 ${m.Ville}${m.Niche?"<br>🎯 "+m.Niche:""}${social}
     </div>`;
     let mk;
     if(isDC){
       mk = L.marker(coords, { icon: DC_ICON }).addTo(map).bindPopup(popup);
     } else {
-      mk = L.circleMarker(coords, { radius:9, fillColor:c.fill, color:c.stroke, weight:2, opacity:1, fillOpacity:0.9 })
+      mk = L.circleMarker(coords, { radius:9, fillColor:"#3BD851", color:"#1a8a30", weight:2, opacity:1, fillOpacity:0.9 })
         .addTo(map).bindPopup(popup);
     }
     mk._memberId = allMembers.indexOf(m);
