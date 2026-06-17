@@ -3,86 +3,105 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Carte de la communauté</title>
+  <title>Carte · Disruptive Closing</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f3; color: #1a1a1a; }
 
-    header { background: #fff; border-bottom: 1px solid #e5e5e5; padding: 1rem 1.5rem; display: flex; align-items: center; gap: 12px; }
-    header h1 { font-size: 18px; font-weight: 600; }
-    header p { font-size: 13px; color: #666; margin-top: 2px; }
+    :root {
+      --dc-dark: #0A1520;
+      --dc-warm: #F8F5F0;
+      --dc-green: #3BD851;
+      --dc-red: #E85D40;
+      --dc-amber: #F5A623;
+      --dc-border: #e2ddd6;
+    }
 
-    .layout { display: flex; height: calc(100vh - 61px); min-height: 400px; }
+    body { font-family: "Calibri", "Segoe UI", sans-serif; background: var(--dc-warm); color: var(--dc-dark); }
 
-    /* Panneau gauche */
-    .sidebar { width: 360px; flex-shrink: 0; overflow-y: auto; background: #fff; border-right: 1px solid #e5e5e5; display: flex; flex-direction: column; }
+    header {
+      background: var(--dc-dark);
+      padding: 0 1.5rem;
+      height: 62px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .header-logo { display: flex; align-items: center; gap: 10px; }
+    .header-logo svg { height: 32px; width: auto; }
+    .header-tag {
+      font-family: "Nunito", sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--dc-green);
+      background: rgba(59,216,81,0.12);
+      border: 1px solid rgba(59,216,81,0.3);
+      border-radius: 4px;
+      padding: 3px 8px;
+    }
 
-    .tab-bar { display: flex; border-bottom: 1px solid #e5e5e5; }
-    .tab { flex: 1; padding: 12px; text-align: center; font-size: 13px; font-weight: 500; cursor: pointer; color: #888; border-bottom: 2px solid transparent; }
-    .tab.active { color: #534AB7; border-bottom-color: #534AB7; }
+    .layout { display: flex; height: calc(100vh - 62px); min-height: 400px; }
 
-    .tab-content { display: none; padding: 1rem; flex: 1; }
+    .sidebar { width: 360px; flex-shrink: 0; overflow-y: auto; background: #fff; border-right: 1px solid var(--dc-border); display: flex; flex-direction: column; }
+
+    .tab-bar { display: flex; border-bottom: 1px solid var(--dc-border); }
+    .tab { flex: 1; padding: 13px; text-align: center; font-size: 13px; font-weight: 700; font-family: "Nunito", sans-serif; cursor: pointer; color: #999; border-bottom: 2px solid transparent; transition: color 0.15s; }
+    .tab.active { color: var(--dc-dark); border-bottom-color: var(--dc-green); }
+
+    .tab-content { display: none; padding: 1rem; }
     .tab-content.active { display: block; }
 
-    label { font-size: 12px; color: #666; display: block; margin-bottom: 3px; margin-top: 10px; }
+    label { font-size: 12px; color: #666; display: block; margin-bottom: 3px; margin-top: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
     label:first-child { margin-top: 0; }
-    input, select { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; background: #fff; color: #1a1a1a; }
-    input:focus, select:focus { outline: none; border-color: #534AB7; }
-    button.primary { width: 100%; margin-top: 14px; padding: 10px; background: #534AB7; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; }
-    button.primary:hover { background: #3C3489; }
-    button.primary:disabled { background: #aaa; cursor: not-allowed; }
+    input, select { width: 100%; padding: 8px 10px; border: 1px solid var(--dc-border); border-radius: 6px; font-size: 14px; background: #fff; color: var(--dc-dark); font-family: "Calibri", sans-serif; }
+    input:focus, select:focus { outline: none; border-color: var(--dc-green); box-shadow: 0 0 0 2px rgba(59,216,81,0.15); }
+    button.primary { width: 100%; margin-top: 14px; padding: 11px; background: var(--dc-green); color: var(--dc-dark); border: none; border-radius: 6px; font-size: 14px; font-weight: 800; font-family: "Nunito", sans-serif; cursor: pointer; letter-spacing: 0.02em; transition: background 0.15s; }
+    button.primary:hover { background: #2ec447; }
+    button.primary:disabled { background: #aaa; cursor: not-allowed; color: #fff; }
 
     #formStatus { font-size: 13px; margin-top: 8px; min-height: 18px; }
-    .ok { color: #0F6E56; } .err { color: #993C1D; }
+    .ok { color: #1a8a30; } .err { color: var(--dc-red); }
 
-    /* Filtres */
-    .filters { padding: 12px 1rem; border-bottom: 1px solid #e5e5e5; display: flex; gap: 6px; flex-wrap: wrap; }
-    .pill { font-size: 12px; padding: 4px 10px; border-radius: 99px; border: 1px solid #ddd; background: #fff; color: #555; cursor: pointer; }
-    .pill.active { background: #534AB7; color: #fff; border-color: #534AB7; }
+    .filters { padding: 12px 1rem; border-bottom: 1px solid var(--dc-border); display: flex; gap: 6px; flex-wrap: wrap; background: var(--dc-warm); }
+    .pill { font-size: 12px; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--dc-border); background: #fff; color: #555; cursor: pointer; font-family: "Nunito", sans-serif; font-weight: 700; transition: all 0.15s; }
+    .pill.active { background: var(--dc-dark); color: var(--dc-green); border-color: var(--dc-dark); }
 
-    /* Liste membres */
     #memberList { padding: 0; }
-    .member-card { padding: 12px 1rem; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
-    .member-card:hover { background: #fafafa; }
-    .member-card .name { font-size: 14px; font-weight: 500; }
+    .member-card { padding: 12px 1rem; border-bottom: 1px solid #f0ebe3; cursor: pointer; transition: background 0.1s; }
+    .member-card:hover { background: var(--dc-warm); }
+    .member-card .name { font-size: 14px; font-weight: 700; font-family: "Nunito", sans-serif; color: var(--dc-dark); }
     .member-card .meta { font-size: 12px; color: #888; margin-top: 2px; }
-    .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-top: 4px; }
-    .badge.recherche { background: #FAECE7; color: #993C1D; }
-    .badge.mission { background: #E1F5EE; color: #0F6E56; }
-    .badge.dispo { background: #FAEEDA; color: #854F0B; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 700; font-family: "Nunito", sans-serif; padding: 2px 8px; border-radius: 4px; margin-top: 4px; }
+    .badge.recherche { background: #fce8e3; color: #b83a20; }
+    .badge.mission { background: #e0f8e4; color: #1a7a2a; }
+    .badge.dispo { background: #fef3e0; color: #9a6a0a; }
 
     .empty { padding: 2rem 1rem; text-align: center; color: #aaa; font-size: 14px; }
 
-    /* Carte */
     #map { flex: 1; height: 100%; }
 
-    /* Mobile */
     @media (max-width: 700px) {
-      header { padding: 10px 1rem; }
-      header h1 { font-size: 16px; }
-      header p { display: none; }
+      header { height: 52px; padding: 0 1rem; }
+      .header-tag { display: none; }
 
-      .layout { flex-direction: column-reverse; height: calc(100vh - 50px); }
+      .layout { flex-direction: column-reverse; height: calc(100vh - 52px); }
 
-      .sidebar {
-        width: 100%;
-        flex-shrink: 0;
-        height: 55vh;
-        overflow-y: auto;
-        border-right: none;
-        border-top: 1px solid #e5e5e5;
-      }
+      .sidebar { width: 100%; flex-shrink: 0; height: 55vh; overflow-y: auto; border-right: none; border-top: 1px solid var(--dc-border); }
 
       #map { height: 45vh; flex: none; }
 
       .tab { padding: 14px 8px; font-size: 14px; }
       .tab-content { padding: 12px; }
 
-      input, select { font-size: 16px; } /* évite le zoom auto iOS */
+      input, select { font-size: 16px; }
       button.primary { padding: 14px; font-size: 15px; }
 
-      .filters { padding: 10px 12px; gap: 6px; }
+      .filters { padding: 10px 12px; }
       .pill { font-size: 13px; padding: 6px 12px; }
 
       .member-card { padding: 12px; }
@@ -93,10 +112,32 @@
 <body>
 
 <header>
-  <div>
-    <h1>🗺️ Carte de la communauté</h1>
-    <p>Clique sur un marqueur pour voir le profil · Filtre par statut</p>
+  <div class="header-logo">
+    <svg viewBox="0 0 379 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M101.552 132.724H89.3071V141.821H101.552V132.724Z" fill="white"/>
+      <path d="M268.427 132.724H256.182V141.821H268.427V132.724Z" fill="white"/>
+      <path d="M79.5704 137.813C75.538 134.371 70.0305 132.65 63.0722 132.65H44.1646V175.457H62.4084C69.4158 175.457 75.0463 173.711 79.2753 170.244C83.5043 166.753 85.6189 161.417 85.6189 154.189C85.6189 146.96 83.6027 141.256 79.5458 137.813H79.5704ZM72.022 154.262C72.022 157.36 71.6778 159.819 70.9894 161.614C70.3009 163.409 69.2191 164.737 67.7684 165.548C66.3178 166.359 64.3508 166.777 61.892 166.777H57.368V141.428H62.0642C64.4737 141.428 66.3915 141.846 67.8422 142.657C69.2928 143.468 70.3255 144.796 71.014 146.616C71.6778 148.435 72.022 150.894 72.022 153.992V154.238V154.262Z" fill="white"/>
+      <path d="M101.503 145.042H89.3813V175.481H101.503V145.042Z" fill="white"/>
+      <path d="M121.123 168.425C120.632 168.769 119.869 168.941 118.837 168.941C117.337 168.941 115.763 168.597 114.091 167.933C112.444 167.269 110.944 166.384 109.616 165.253L104.256 171.252C106.1 172.85 108.362 174.104 110.993 175.014C113.649 175.948 116.525 176.391 119.673 176.391C122.303 176.391 124.615 175.948 126.68 175.063C128.745 174.178 130.319 172.949 131.475 171.351C132.63 169.752 133.22 167.933 133.22 165.868C133.22 163.802 132.704 162.204 131.696 160.926C130.688 159.647 129.483 158.688 128.057 158.024C126.631 157.36 124.91 156.746 122.894 156.18C122.599 156.106 122.303 156.033 122.058 155.983C121.148 155.738 120.238 155.492 119.279 155.27C118.124 154.975 117.312 154.705 116.894 154.459C116.452 154.213 116.255 153.869 116.255 153.402C116.255 152.812 116.501 152.345 117.017 152.025C117.534 151.705 118.271 151.533 119.205 151.533C120.632 151.533 122.107 151.828 123.656 152.443C125.205 153.058 126.582 153.869 127.786 154.902L132.827 149.173C131.204 147.575 129.09 146.321 126.508 145.411C123.926 144.477 121.172 144.034 118.247 144.034C115.714 144.034 113.427 144.477 111.387 145.362C109.346 146.247 107.772 147.476 106.641 149.074C105.535 150.673 104.969 152.467 104.969 154.484C104.969 156.5 105.486 158.172 106.518 159.475C107.551 160.778 108.83 161.786 110.354 162.499C111.878 163.212 113.649 163.827 115.665 164.343L117.853 164.933C119.304 165.228 120.336 165.523 120.951 165.769C121.541 166.015 121.861 166.409 121.861 166.925C121.861 167.564 121.615 168.056 121.123 168.4V168.425Z" fill="white"/>
+      <path d="M148.513 160.704C148.513 158.86 148.882 157.508 149.62 156.672C150.357 155.836 151.71 155.418 153.677 155.418H157.856V144.919H157.02C154.66 144.919 152.791 145.386 151.414 146.296C150.038 147.23 149.103 148.583 148.587 150.402V145.042H136.392V175.481H148.513V160.704Z" fill="white"/>
+      <path d="M180.231 171.4V175.457H192.156V145.042H180.157V161.614C180.157 163.384 179.838 164.761 179.199 165.769C178.559 166.777 177.576 167.294 176.297 167.294C175.019 167.294 174.084 166.9 173.494 166.089C172.904 165.302 172.634 164.122 172.634 162.573V145.042H160.586V163.556C160.586 167.589 161.545 170.736 163.463 172.949C165.38 175.162 168.06 176.268 171.478 176.268C173.494 176.268 175.24 175.85 176.74 175.014C178.24 174.178 179.395 172.973 180.256 171.424L180.231 171.4Z" fill="white"/>
+      <path d="M208.802 171.719C209.834 173.17 211.138 174.301 212.711 175.112C214.285 175.899 215.957 176.317 217.776 176.317C220.432 176.317 222.792 175.629 224.833 174.276C226.873 172.924 228.447 171.031 229.578 168.597C230.685 166.162 231.25 163.359 231.25 160.188V160.114C231.25 156.967 230.685 154.213 229.578 151.803C228.472 149.394 226.873 147.525 224.833 146.198C222.792 144.87 220.456 144.206 217.825 144.206C215.858 144.206 214.088 144.599 212.564 145.411C211.039 146.198 209.785 147.353 208.802 148.853V145.042H196.68V186.963H208.802V171.744V171.719ZM208.605 159.401C208.605 157.163 208.998 155.467 209.81 154.262C210.597 153.082 211.851 152.492 213.572 152.492C215.17 152.492 216.375 153.057 217.211 154.188C218.047 155.319 218.465 157.163 218.465 159.696V160.606C218.465 163.138 218.047 165.007 217.211 166.187C216.375 167.367 215.17 167.957 213.572 167.957C211.851 167.957 210.597 167.392 209.81 166.236C209.023 165.105 208.605 163.409 208.605 161.171V159.376V159.401Z" fill="white"/>
+      <path d="M235.946 165.868C235.946 168.007 236.143 169.752 236.561 171.08C236.979 172.408 237.766 173.441 238.921 174.178C240.077 174.916 241.749 175.334 243.962 175.457H252.543V167.589H249.445C248.83 167.589 248.412 167.441 248.117 167.171C247.846 166.9 247.699 166.482 247.699 165.917V152.517H252.666V145.042H247.773V133.683L235.971 138.846V145.042H232.233V152.517H235.971V165.868H235.946Z" fill="white"/>
+      <path d="M268.376 145.042H256.255V175.481H268.376V145.042Z" fill="white"/>
+      <path d="M293.014 175.653L304.349 145.042H294.366L289.08 162.77L283.326 145.042H270.688L282.294 175.653H293.014Z" fill="white"/>
+      <path d="M310.864 174.325C313.397 175.604 316.421 176.219 319.961 176.219C323.994 176.219 327.215 175.579 329.649 174.325L332.034 172.654C333.755 171.129 335.033 169.064 335.894 166.482L326.6 164.343C326.207 165.597 325.518 166.556 324.535 167.269C323.551 167.982 322.248 168.326 320.674 168.326C318.879 168.326 317.453 167.859 316.445 166.949C315.437 166.015 314.847 164.638 314.675 162.794H336.091V160.802C336.091 155.565 334.665 151.484 331.837 148.558C329.009 145.632 324.977 144.181 319.789 144.181C316.396 144.181 313.446 144.845 310.913 146.173C308.405 147.501 306.463 149.394 305.111 151.853C303.758 154.311 303.07 157.163 303.07 160.434C303.07 163.704 303.734 166.507 305.061 168.892C306.389 171.252 308.332 173.071 310.864 174.35V174.325ZM316.15 153.131C317.06 152.197 318.265 151.754 319.765 151.754C321.264 151.754 322.469 152.197 323.256 153.082C324.018 153.967 324.461 155.319 324.535 157.188H314.601C314.724 155.418 315.241 154.09 316.15 153.156V153.131Z" fill="white"/>
+      <path d="M70.9898 219.615C69.5637 220.894 67.6213 221.558 65.1134 221.558C63.2202 221.558 61.6712 221.14 60.4664 220.304C59.2616 219.468 58.3519 218.165 57.7372 216.444C57.1225 214.698 56.8029 212.534 56.8029 209.953V208.674C56.8029 206.092 57.1225 203.929 57.7372 202.183C58.3519 200.437 59.3108 199.159 60.5647 198.323C61.8433 197.487 63.4415 197.069 65.3593 197.069C67.5967 197.069 69.4162 197.684 70.8423 198.864C72.2683 200.069 73.1781 201.814 73.6206 204.076H84.98C84.2178 198.667 82.1033 194.463 78.661 191.463C75.2188 188.488 70.6947 186.988 65.0642 186.988C60.6877 186.988 56.852 187.898 53.5573 189.717C50.2626 191.537 47.7301 194.143 45.9107 197.511C44.1158 200.88 43.2061 204.838 43.2061 209.338C43.2061 213.837 44.0912 217.722 45.8861 221.115C47.681 224.484 50.1889 227.09 53.4344 228.885C56.6799 230.68 60.4418 231.59 64.7446 231.59C70.7193 231.59 75.5139 230.114 79.1528 227.139C82.7917 224.164 84.8079 219.615 85.2505 213.469H73.6452C73.301 216.272 72.4158 218.312 70.9898 219.591V219.615Z" fill="white"/>
+      <path d="M100.863 187.652H88.6675V230.729H100.863V187.652Z" fill="white"/>
+      <path d="M131.352 201.445C128.721 200.167 125.623 199.503 122.008 199.503C118.394 199.503 115.198 200.167 112.567 201.47C109.911 202.773 107.895 204.642 106.494 207.027C105.092 209.412 104.404 212.239 104.404 215.509C104.404 218.779 105.092 221.607 106.469 224.017C107.846 226.426 109.838 228.27 112.444 229.573C115.05 230.852 118.148 231.516 121.762 231.516C125.377 231.516 128.573 230.852 131.204 229.549C133.835 228.246 135.876 226.377 137.302 223.992C138.728 221.607 139.441 218.779 139.441 215.509C139.441 212.239 138.752 209.412 137.375 207.002C135.999 204.593 134.007 202.748 131.376 201.445H131.352ZM126.975 215.829C126.975 218.484 126.557 220.451 125.696 221.705C124.836 222.959 123.557 223.574 121.885 223.574C120.213 223.574 118.96 222.959 118.124 221.705C117.288 220.451 116.87 218.509 116.87 215.829V215.239C116.87 212.583 117.288 210.592 118.148 209.313C119.009 208.035 120.287 207.371 121.959 207.371C123.631 207.371 124.885 208.01 125.721 209.313C126.557 210.592 126.975 212.583 126.975 215.239V215.829Z" fill="white"/>
+      <path d="M335.968 200.241L323.33 212.338H336.066V200.241H335.968Z" fill="white"/>
+      <path d="M270.787 212.338H289.965L302.603 200.241H270.787V212.338Z" fill="white"/>
+      <path d="M270.787 230.729L283.425 218.607H270.787V230.729Z" fill="white"/>
+      <path d="M304.152 230.729H336.066V218.607H316.79L304.152 230.729Z" fill="white"/>
+      <path d="M327.199 184.301L270.773 238.355L279.159 247.108L335.584 193.054L331.392 188.678L327.199 184.301Z" fill="#3BD851"/>
+      <path d="M335.72 184.162L335.72 197.321L335.511 197.104L323.244 184.368L323.046 184.162L335.72 184.162Z" fill="#3BD851"/>
+    </svg>
   </div>
+  <span class="header-tag">Carte de la communauté</span>
 </header>
 
 <div class="layout">
@@ -173,9 +214,9 @@ const CITIES = {
 };
 
 const COLORS = {
-  "En recherche de mission": { fill:"#D85A30", stroke:"#993C1D" },
-  "En mission":              { fill:"#1D9E75", stroke:"#0F6E56" },
-  "Disponible bientôt":      { fill:"#BA7517", stroke:"#854F0B" }
+  "En recherche de mission": { fill:"#E85D40", stroke:"#b83a20" },
+  "En mission":              { fill:"#3BD851", stroke:"#1a8a30" },
+  "Disponible bientôt":      { fill:"#F5A623", stroke:"#9a6a0a" }
 };
 
 function badgeClass(s){ return s==="En mission"?"mission":s==="Disponible bientôt"?"dispo":"recherche"; }
